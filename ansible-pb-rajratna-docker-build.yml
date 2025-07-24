@@ -1,0 +1,70 @@
+---
+- name: Clean and deploy static Docker site
+  hosts: docker_host
+  become: true
+  vars_files:
+    - vault.yml
+
+  vars:
+    project_dir: /home/ubuntu/rajratna
+    image_name: ednvk/rajratna-site  # Update with your Docker Hub repo
+
+  tasks:
+
+    - name: Log in to Docker Hub
+      docker_login:
+        username: "{{ dockerhub_username }}"
+        password: "{{ dockerhub_password }}"
+
+    - name: Stop all running Docker containers
+      shell: docker ps -q | xargs -r docker stop
+      ignore_errors: true
+
+    - name: Remove all Docker containers
+      shell: docker ps -a -q | xargs -r docker rm
+      ignore_errors: true
+
+    - name: Remove all Docker images
+      shell: docker images -q | xargs -r docker rmi -f
+      ignore_errors: true
+
+    - name: Delete existing project directory
+      file:
+        path: "{{ project_dir }}"
+        state: absent
+
+    - name: Recreate clean project directory
+      file:
+        path: "{{ project_dir }}"
+        state: directory
+        mode: '0755'
+
+    - name: Copy Dockerfile to remote server
+      copy:
+        src: Dockerfile
+        dest: "{{ project_dir }}/Dockerfile"
+        mode: '0644'
+
+    - name: Copy website folder to remote server
+      copy:
+        src: website/
+        dest: "{{ project_dir }}/website/"
+        mode: '0755'
+
+    - name: Build Docker image
+      command: docker build -t {{ image_name }} .
+      args:
+        chdir: "{{ project_dir }}"
+
+    - name: Push Docker image to Docker Hub
+      command: docker push {{ image_name }}
+
+    - name: Run new container from image
+      docker_container:
+        name: rajratna-container
+        image: "{{ image_name }}"
+        state: started
+        restart_policy: always
+        published_ports:
+          - "8088:80"
+

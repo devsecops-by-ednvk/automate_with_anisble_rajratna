@@ -1,0 +1,40 @@
+---
+- name: Deploy app to Kubernetes using Kops-managed cluster
+  hosts: k8s_host
+  become: true
+
+  tasks:
+
+    - name: Delete old Kubernetes deployment directory if it exists
+      file:
+        path: /home/ubuntu/rajratna-k8s
+        state: absent
+
+    - name: Create directory for Kubernetes manifests
+      file:
+        path: /home/ubuntu/rajratna-k8s
+        state: directory
+        mode: '0755'
+
+    - name: Copy deployment.yml to remote host
+      copy:
+        src: k8s/deployment.yml
+        dest: /home/ubuntu/rajratna-k8s/deployment.yml
+        mode: '0644'
+
+    - name: Copy service.yml to remote host
+      copy:
+        src: k8s/service.yml
+        dest: /home/ubuntu/rajratna-k8s/service.yml
+        mode: '0644'
+
+    - name: Apply Kubernetes Deployment
+      shell: kubectl apply -f /home/ubuntu/rajratna-k8s/deployment.yml
+      environment:
+        KUBECONFIG: /home/ubuntu/.kube/config
+
+    - name: Apply Kubernetes Service
+      shell: kubectl apply -f /home/ubuntu/rajratna-k8s/service.yml
+      environment:
+        KUBECONFIG: /home/ubuntu/.kube/config
+
