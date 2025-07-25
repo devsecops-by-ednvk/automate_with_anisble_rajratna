@@ -7,7 +7,7 @@
 
   vars:
     project_dir: /home/ubuntu/rajratna
-    image_name: ednvk/rajratna-site  # Update with your Docker Hub repo
+    image_name: ednvk/rajratna-webhook  # Update with your Docker Hub repo
 
   tasks:
 
